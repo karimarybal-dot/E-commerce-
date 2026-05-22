@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672" # UI админки RabbitMQ
+    networks:
+      - ecommerce-net
+
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      - CATALOG_URL=http://catalog-service:4000
+      - ORDER_URL=http://order-service:5000
+    depends_on:
+      - rabbitmq
+      - catalog-service
+      - order-service
+    networks:
+      - ecommerce-net
+
+  catalog-service:
+    build: ./catalog-service
+    ports:
+      - "4000:4000"
+    networks:
+      - ecommerce-net
+
+  order-service:
+    build: ./order-service
+    ports:
+      - "5000:5000"
+    environment:
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    depends_on:
+      - rabbitmq
+    networks:
+      - ecommerce-net
+
+  notification-service:
+    build: ./notification-service
+    environment:
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    depends_on:
+      - rabbitmq
+    networks:
+      - ecommerce-net
+
+networks:
+  ecommerce-net:
+    driver: bridge
